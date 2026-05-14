@@ -7,7 +7,7 @@ const inferredApiUrl = sameOriginApi
   : `${window.location.protocol}//${window.location.hostname}:4242/api`;
 
 export const API_ROOT = (explicitApiUrl || inferredApiUrl).replace(/\/$/, "");
-const PIN_STORAGE_KEY = "natu-local-drive-pin";
+const PIN_STORAGE_KEY = "pocketlan-pin";
 
 export function getStoredPin() {
   return localStorage.getItem(PIN_STORAGE_KEY) || "";
@@ -27,7 +27,7 @@ api.interceptors.request.use((config) => {
   const pin = getStoredPin();
 
   if (pin) {
-    config.headers["x-natu-pin"] = pin;
+    config.headers["x-pocketlan-pin"] = pin;
   }
 
   return config;
@@ -118,4 +118,3 @@ export async function bulkDownload(paths) {
 
   return data;
 }
-

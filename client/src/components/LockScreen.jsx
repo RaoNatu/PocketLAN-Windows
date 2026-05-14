@@ -35,7 +35,7 @@ export default function LockScreen({ loading, error, onUnlock }) {
               <Lock className="h-6 w-6" />
             </div>
             <div>
-              <h1 className="text-xl font-bold tracking-tight text-white">Natu Local Drive</h1>
+              <h1 className="text-xl font-bold tracking-tight text-white">PocketLAN</h1>
               <p className="text-sm text-slate-400">Your private Wi-Fi file explorer</p>
             </div>
           </div>
@@ -84,4 +84,3 @@ export default function LockScreen({ loading, error, onUnlock }) {
     </main>
   );
 }
-

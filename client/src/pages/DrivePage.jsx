@@ -158,7 +158,7 @@ export default function DrivePage({ onLock }) {
       }
 
       const blob = await bulkDownload(selectedList.map((item) => item.path));
-      saveBlob(blob, "natu-local-drive-selection.zip");
+      saveBlob(blob, "pocketlan-selection.zip");
     } catch (requestError) {
       pushToast({
         tone: "error",
@@ -176,8 +176,8 @@ export default function DrivePage({ onLock }) {
       title: itemList.length === 1 ? "Move item to trash?" : "Move selected items to trash?",
       message:
         itemList.length === 1
-          ? `"${itemList[0].name}" will be moved into the local .natu-trash folder.`
-          : `${itemList.length} items will be moved into the local .natu-trash folder.`,
+          ? `"${itemList[0].name}" will be moved into the local .pocketlan-trash folder.`
+          : `${itemList.length} items will be moved into the local .pocketlan-trash folder.`,
       detail: itemList.map((item) => item.path || item.name).join("\n"),
       danger: true,
       confirmLabel: "Move to trash",
@@ -452,4 +452,3 @@ export default function DrivePage({ onLock }) {
     </div>
   );
 }
-

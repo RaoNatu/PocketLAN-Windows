@@ -1,7 +1,7 @@
 {
-  "name": "natu-local-drive-client",
+  "name": "pocketlan-client",
   "version": "1.0.0",
-  "description": "React frontend for Natu Local Drive.",
+  "description": "React frontend for PocketLAN.",
   "type": "module",
   "scripts": {
     "dev": "vite",

@@ -1,7 +1,7 @@
 {
-  "name": "natu-local-drive-server",
+  "name": "pocketlan-server",
   "version": "1.0.0",
-  "description": "Secure local-network file explorer backend for Natu Local Drive.",
+  "description": "Secure local-network file explorer backend for PocketLAN.",
   "type": "module",
   "main": "src/index.js",
   "scripts": {

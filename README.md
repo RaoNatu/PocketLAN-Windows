@@ -1,6 +1,6 @@
-# Natu Local Drive
+# PocketLAN
 
-Natu Local Drive is a private local-network file explorer for your laptop. It lets phones, tablets, and other browsers on the same trusted Wi-Fi browse one configured shared folder, upload files to it, download files from it, preview common media/doc formats, and stream audio/video without using cloud services or an external database.
+PocketLAN is a private local-network file explorer for your laptop. It lets phones, tablets, and other browsers on the same trusted Wi-Fi browse one configured shared folder, upload files to it, download files from it, preview common media/doc formats, and stream audio/video without using cloud services or an external database.
 
 ## Features
 
@@ -13,7 +13,7 @@ Natu Local Drive is a private local-network file explorer for your laptop. It le
 - Sort, filter, multi-select, and switch between grid/list/compact/gallery/detail layouts.
 - Optional PIN/password gate using `APP_PIN`.
 - Safe path handling to prevent path traversal outside the shared root.
-- Delete moves items into `.natu-trash` inside the shared root.
+- Delete moves items into `.pocketlan-trash` inside the shared root.
 
 ## Security Warning
 
@@ -172,8 +172,8 @@ http://192.168.1.23:5173
 If your phone/tablet cannot connect, Windows Defender Firewall may be blocking Node/Vite. You can allow the two local TCP ports from an Administrator PowerShell:
 
 ```powershell
-netsh advfirewall firewall add rule name="Natu Local Drive Backend 4242" dir=in action=allow protocol=TCP localport=4242
-netsh advfirewall firewall add rule name="Natu Local Drive Frontend 5173" dir=in action=allow protocol=TCP localport=5173
+netsh advfirewall firewall add rule name="PocketLAN Backend 4242" dir=in action=allow protocol=TCP localport=4242
+netsh advfirewall firewall add rule name="PocketLAN Frontend 5173" dir=in action=allow protocol=TCP localport=5173
 ```
 
 Use these only on trusted private networks. Remove the rules later if you no longer need local device access.
@@ -210,6 +210,6 @@ http://LAPTOP_LOCAL_IP:4242
 ## Notes
 
 - Symbolic links are not exposed, which avoids accidentally escaping the shared root.
-- Deletes move files/folders to `.natu-trash` inside the shared root.
+- Deletes move files/folders to `.pocketlan-trash` inside the shared root.
 - Unknown files remain downloadable even when preview is not available.
 - Browser support for formats like `mkv`, `docx`, or `xlsx` depends on the browser; they are still downloadable.

@@ -19,7 +19,7 @@ export const SHARED_ROOT = path.resolve(
   process.env.SHARED_ROOT || path.join(PROJECT_ROOT, "SharedFiles")
 );
 
-export const TRASH_DIR = path.join(SHARED_ROOT, ".natu-trash");
+export const TRASH_DIR = path.join(SHARED_ROOT, ".pocketlan-trash");
 export const TEMP_UPLOAD_DIR = path.join(SERVER_DIR, ".uploads");
 export const MAX_UPLOAD_SIZE_MB = Number(process.env.MAX_UPLOAD_SIZE_MB || 4096);
 
@@ -37,4 +37,3 @@ export function getLanAddresses() {
     .filter((net) => net && net.family === "IPv4" && !net.internal)
     .map((net) => net.address);
 }
-

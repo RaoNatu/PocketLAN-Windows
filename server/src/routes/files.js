@@ -50,7 +50,7 @@ async function getDirectoryItems(absolutePath) {
   const entries = await fsp.readdir(absolutePath, { withFileTypes: true });
   const items = await Promise.all(
     entries
-      .filter((entry) => entry.name !== ".natu-trash")
+      .filter((entry) => entry.name !== ".pocketlan-trash")
       .map((entry) => buildFileMeta(path.join(absolutePath, entry.name)))
   );
 
@@ -73,7 +73,7 @@ async function getStorageSummary() {
     const entries = await fsp.readdir(folder, { withFileTypes: true });
 
     for (const entry of entries) {
-      if (entry.name === ".natu-trash" || entry.isSymbolicLink()) continue;
+      if (entry.name === ".pocketlan-trash" || entry.isSymbolicLink()) continue;
 
       const absolutePath = path.join(folder, entry.name);
 
@@ -132,7 +132,7 @@ async function addToArchive(archive, absolutePath, zipBaseName) {
     const entries = await fsp.readdir(absolutePath, { withFileTypes: true });
 
     for (const entry of entries) {
-      if (entry.name === ".natu-trash") continue;
+      if (entry.name === ".pocketlan-trash") continue;
       await addToArchive(archive, path.join(absolutePath, entry.name), `${zipBaseName}/${entry.name}`);
     }
 
@@ -192,7 +192,7 @@ router.post(
       throw new HttpError(400, "At least one file or folder path is required.");
     }
 
-    res.attachment("natu-local-drive-selection.zip");
+    res.attachment("pocketlan-selection.zip");
     const archive = archiver("zip", { zlib: { level: 7 } });
 
     archive.on("error", (error) => {
@@ -350,7 +350,7 @@ router.get(
 
       for (const entry of entries) {
         if (results.length >= limit) break;
-        if (entry.name === ".natu-trash" || entry.isSymbolicLink()) continue;
+        if (entry.name === ".pocketlan-trash" || entry.isSymbolicLink()) continue;
 
         const absolutePath = path.join(folder, entry.name);
 
@@ -394,4 +394,3 @@ router.get(
 );
 
 export default router;
-

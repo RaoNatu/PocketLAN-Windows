@@ -31,7 +31,7 @@ app.use(express.json({ limit: "2mb" }));
 app.get("/api/health", (_req, res) => {
   res.json({
     ok: true,
-    app: "Natu Local Drive",
+    app: "PocketLAN",
     sharedRoot: SHARED_ROOT,
     pinEnabled: Boolean(APP_PIN)
   });
@@ -61,7 +61,7 @@ app.use("/api", (req, res, next) => {
     return;
   }
 
-  if (String(req.get("x-natu-pin") || req.query.pin || "") === APP_PIN) {
+  if (String(req.get("x-pocketlan-pin") || req.query.pin || "") === APP_PIN) {
     next();
     return;
   }
@@ -107,7 +107,7 @@ app.listen(PORT, "0.0.0.0", () => {
   const firstLan = lanAddresses[0] || "YOUR_LAPTOP_LOCAL_IP";
 
   console.log("");
-  console.log("Natu Local Drive backend is running");
+  console.log("PocketLAN backend is running");
   console.log("-----------------------------------");
   console.log(`Shared root: ${SHARED_ROOT}`);
   console.log(`Local laptop API: http://localhost:${PORT}`);
