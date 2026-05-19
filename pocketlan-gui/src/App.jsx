@@ -3,10 +3,13 @@ import {
   Check,
   ClipboardCopy,
   Copy,
+  Eye,
+  EyeOff,
   ExternalLink,
   FolderOpen,
   Link2,
   Loader2,
+  Lock,
   Play,
   QrCode,
   RefreshCcw,
@@ -241,13 +244,121 @@ function QrModal({ link, onClose, onCopy, onOpen }) {
   );
 }
 
+function PinSetting({ pinEnabled, appPin, onToggle, onSave }) {
+  const [draft, setDraft] = useState(appPin ?? "");
+  const [showPin, setShowPin] = useState(false);
+  const [dirty, setDirty] = useState(false);
+
+  // Sync external appPin into draft when it changes from outside
+  useEffect(() => {
+    setDraft(appPin ?? "");
+    setDirty(false);
+  }, [appPin]);
+
+  const handleChange = (e) => {
+    setDraft(e.target.value);
+    setDirty(true);
+  };
+
+  const handleSave = () => {
+    if (dirty) {
+      onSave(draft);
+      setDirty(false);
+    }
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter") {
+      handleSave();
+    }
+  };
+
+  return (
+    <div className="rounded-lg border border-zinc-800 bg-zinc-950 overflow-hidden">
+      {/* Toggle row */}
+      <button
+        type="button"
+        role="switch"
+        aria-checked={pinEnabled}
+        onClick={() => onToggle(!pinEnabled)}
+        className="flex w-full items-center justify-between gap-4 px-4 py-3 text-left transition hover:bg-zinc-900/60"
+      >
+        <div className="flex items-center gap-3">
+          <Lock size={15} className={pinEnabled ? "text-cyan-300" : "text-zinc-500"} />
+          <span className="text-sm font-medium text-zinc-100">App PIN protection</span>
+        </div>
+        <span
+          className={classNames(
+            "relative h-6 w-11 shrink-0 rounded-full border transition",
+            pinEnabled ? "border-cyan-400/60 bg-cyan-400/35" : "border-zinc-700 bg-zinc-800"
+          )}
+        >
+          <span
+            className={classNames(
+              "absolute top-1/2 h-4 w-4 -translate-y-1/2 rounded-full bg-zinc-100 transition",
+              pinEnabled ? "left-6" : "left-1"
+            )}
+          />
+        </span>
+      </button>
+
+      {/* PIN input — only when enabled */}
+      {pinEnabled && (
+        <div className="border-t border-zinc-800 px-4 py-3">
+          <p className="mb-2 text-xs text-zinc-500">
+            Clients must enter this PIN to access the server.
+          </p>
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
+              <input
+                id="app-pin-input"
+                type={showPin ? "text" : "password"}
+                value={draft}
+                onChange={handleChange}
+                onKeyDown={handleKeyDown}
+                placeholder="Enter PIN…"
+                maxLength={64}
+                className="h-10 w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 pr-10 text-sm text-zinc-100 placeholder-zinc-600 transition focus:border-cyan-400/60 focus:outline-none"
+              />
+              <button
+                type="button"
+                aria-label={showPin ? "Hide PIN" : "Show PIN"}
+                onClick={() => setShowPin((v) => !v)}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-500 transition hover:text-zinc-200"
+              >
+                {showPin ? <EyeOff size={15} /> : <Eye size={15} />}
+              </button>
+            </div>
+            <button
+              type="button"
+              disabled={!dirty}
+              onClick={handleSave}
+              className={classNames(
+                "inline-flex h-10 items-center gap-1.5 rounded-lg border px-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-45",
+                dirty
+                  ? "border-cyan-400/50 bg-cyan-400/15 text-cyan-100 hover:bg-cyan-400/22"
+                  : "border-zinc-700 bg-zinc-900 text-zinc-400"
+              )}
+            >
+              <Check size={14} />
+              Save
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function App() {
   const [loaded, setLoaded] = useState(false);
   const [folder, setFolder] = useState("");
   const [port, setPort] = useState("3000");
   const [settings, setSettings] = useState({
     autoStart: false,
-    minimizeToTray: true
+    minimizeToTray: true,
+    appPin: "",
+    pinEnabled: false
   });
   const [server, setServer] = useState({
     status: "stopped",
@@ -280,7 +391,9 @@ function App() {
     if (result?.settings) {
       setSettings({
         autoStart: result.settings.autoStart,
-        minimizeToTray: result.settings.minimizeToTray
+        minimizeToTray: result.settings.minimizeToTray,
+        appPin: result.settings.appPin ?? "",
+        pinEnabled: result.settings.pinEnabled ?? false
       });
     }
   }, []);
@@ -297,7 +410,9 @@ function App() {
       setPort(String(state.settings.lastUsedPort || 3000));
       setSettings({
         autoStart: Boolean(state.settings.autoStart),
-        minimizeToTray: Boolean(state.settings.minimizeToTray)
+        minimizeToTray: Boolean(state.settings.minimizeToTray),
+        appPin: state.settings.appPin ?? "",
+        pinEnabled: Boolean(state.settings.pinEnabled)
       });
       setServer(state.server || { status: "stopped" });
       setLogs(state.logs || []);
@@ -316,7 +431,9 @@ function App() {
       setPort(String(state.lastUsedPort || 3000));
       setSettings({
         autoStart: Boolean(state.autoStart),
-        minimizeToTray: Boolean(state.minimizeToTray)
+        minimizeToTray: Boolean(state.minimizeToTray),
+        appPin: state.appPin ?? "",
+        pinEnabled: Boolean(state.pinEnabled)
       });
     });
 
@@ -618,6 +735,20 @@ function App() {
                     setSettings((current) => ({ ...current, minimizeToTray: checked }));
                     await saveSettings({ minimizeToTray: checked });
                     showNotice("Settings saved");
+                  }}
+                />
+                <PinSetting
+                  pinEnabled={settings.pinEnabled}
+                  appPin={settings.appPin}
+                  onToggle={async (checked) => {
+                    setSettings((current) => ({ ...current, pinEnabled: checked }));
+                    await saveSettings({ pinEnabled: checked });
+                    showNotice("Settings saved");
+                  }}
+                  onSave={async (pin) => {
+                    setSettings((current) => ({ ...current, appPin: pin }));
+                    await saveSettings({ appPin: pin });
+                    showNotice("PIN saved");
                   }}
                 />
               </div>

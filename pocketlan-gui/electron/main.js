@@ -48,6 +48,8 @@ const store = new Store({
     lastUsedPort: 3000,
     autoStart: false,
     minimizeToTray: true,
+    appPin: "",
+    pinEnabled: false,
     windowBounds: {
       ...DEFAULT_WINDOW_BOUNDS
     }
@@ -102,6 +104,14 @@ function createServerEnv(folder, port) {
     env.ELECTRON_RUN_AS_NODE = "1";
   }
 
+  const pinEnabled = store.get("pinEnabled");
+  const appPin = store.get("appPin");
+  if (pinEnabled && appPin) {
+    env.APP_PIN = appPin;
+  } else {
+    delete env.APP_PIN;
+  }
+
   return env;
 }
 
@@ -119,6 +129,8 @@ function getPublicSettings() {
     lastUsedPort: store.get("lastUsedPort"),
     autoStart: store.get("autoStart"),
     minimizeToTray: store.get("minimizeToTray"),
+    appPin: store.get("appPin"),
+    pinEnabled: store.get("pinEnabled"),
     windowBounds: store.get("windowBounds")
   };
 }
@@ -735,6 +747,14 @@ ipcMain.handle("settings:save", async (_event, settings = {}) => {
   if (Object.hasOwn(settings, "minimizeToTray")) {
     store.set("minimizeToTray", Boolean(settings.minimizeToTray));
     updateTrayMenu();
+  }
+
+  if (Object.hasOwn(settings, "appPin")) {
+    store.set("appPin", String(settings.appPin || ""));
+  }
+
+  if (Object.hasOwn(settings, "pinEnabled")) {
+    store.set("pinEnabled", Boolean(settings.pinEnabled));
   }
 
   const publicSettings = getPublicSettings();
