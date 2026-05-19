@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Download, ExternalLink, FileQuestion, X } from "lucide-react";
+import MediaPlayer from "./MediaPlayer";
 import { fileUrl } from "../utils/api";
 import { FileTypeIcon, iconTone } from "../utils/fileIcons.jsx";
 import { formatBytes, formatDate, titleCase } from "../utils/format";
 
-export default function PreviewModal({ item, onClose, onDownload }) {
+export default function PreviewModal({ item, mediaItems = [], onClose, onDownload }) {
   const [textPreview, setTextPreview] = useState("");
   const [textError, setTextError] = useState("");
 
@@ -46,23 +47,8 @@ export default function PreviewModal({ item, onClose, onDownload }) {
       );
     }
 
-    if (item.category === "video") {
-      return (
-        <video className="max-h-[72vh] w-full bg-black" controls playsInline src={fileUrl("/media", item.path)}>
-          <track kind="captions" />
-        </video>
-      );
-    }
-
-    if (item.category === "audio") {
-      return (
-        <div className="flex min-h-[280px] flex-col items-center justify-center gap-6 bg-slate-950/35 p-8">
-          <div className={`flex h-28 w-28 items-center justify-center rounded-[2rem] bg-gradient-to-br ${iconTone(item.category)}`}>
-            <FileTypeIcon item={item} className="h-12 w-12" />
-          </div>
-          <audio className="w-full max-w-xl" controls src={fileUrl("/media", item.path)} />
-        </div>
-      );
+    if (item.category === "video" || item.category === "audio") {
+      return <MediaPlayer initialItem={item} mediaItems={mediaItems} onDownload={onDownload} />;
     }
 
     if (item.category === "pdf") {
@@ -109,7 +95,7 @@ export default function PreviewModal({ item, onClose, onDownload }) {
         >
           <motion.div
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            className="glass flex max-h-[94vh] w-full max-w-6xl flex-col overflow-hidden rounded-[2rem]"
+            className="glass flex max-h-[94vh] w-full max-w-[1500px] flex-col overflow-hidden rounded-[2rem]"
             exit={{ opacity: 0, scale: 0.96, y: 12 }}
             initial={{ opacity: 0, scale: 0.96, y: 12 }}
           >
@@ -144,4 +130,3 @@ export default function PreviewModal({ item, onClose, onDownload }) {
     </AnimatePresence>
   );
 }
-

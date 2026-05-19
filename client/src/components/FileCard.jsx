@@ -1,10 +1,10 @@
-import { motion } from "framer-motion";
+import { memo } from "react";
 import { Check, Download, Eye, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import { fileUrl } from "../utils/api";
 import { FileTypeIcon, iconTone } from "../utils/fileIcons.jsx";
 import { formatBytes, formatDate, titleCase } from "../utils/format";
 
-export default function FileCard({
+function FileCard({
   item,
   layout,
   selected,
@@ -22,19 +22,16 @@ export default function FileCard({
 
   if (isList || isCompact) {
     return (
-      <motion.div
-        animate={{ opacity: 1, y: 0 }}
-        className={`group grid items-center gap-3 rounded-3xl border p-3 transition ${
+      <div
+        className={`file-card group grid items-center gap-3 rounded-3xl border p-3 transition ${
           isCompact
             ? "grid-cols-[auto_auto_minmax(0,1fr)_auto]"
             : "grid-cols-[auto_auto_minmax(0,1fr)_auto_auto]"
-        } ${selected ? "border-cyan-300/55 bg-cyan-300/10" : "border-white/10 bg-white/[0.045] hover:bg-white/[0.075]"}`}
-        initial={{ opacity: 0, y: 12 }}
-        layout
+        } ${selected ? "accent-selected" : "border-white/10 bg-white/[0.045] hover:bg-white/[0.075]"}`}
       >
         <button
           className={`flex h-6 w-6 items-center justify-center rounded-lg border transition ${
-            selected ? "border-cyan-200 bg-cyan-300 text-slate-950" : "border-white/15 text-transparent hover:text-slate-200"
+            selected ? "accent-active border-transparent" : "border-white/15 text-transparent hover:text-slate-200"
           }`}
           onClick={(event) => {
             event.stopPropagation();
@@ -77,24 +74,20 @@ export default function FileCard({
             <Pencil className="h-4 w-4" />
           </button>
         </div>
-      </motion.div>
+      </div>
     );
   }
 
   return (
-    <motion.article
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      className={`group overflow-hidden rounded-[1.75rem] border transition ${
-        selected ? "border-cyan-300/55 bg-cyan-300/10 shadow-glow" : "border-white/10 bg-white/[0.045] hover:-translate-y-0.5 hover:bg-white/[0.075]"
+    <article
+      className={`file-card group overflow-hidden rounded-[1.75rem] border transition ${
+        selected ? "accent-selected shadow-glow" : "border-white/10 bg-white/[0.045] hover:-translate-y-0.5 hover:bg-white/[0.075]"
       }`}
-      initial={{ opacity: 0, y: 16, scale: 0.98 }}
-      layout
-      whileHover={{ y: -3 }}
     >
       <div className="relative p-3">
         <button
           className={`absolute left-5 top-5 z-10 flex h-7 w-7 items-center justify-center rounded-xl border backdrop-blur-xl transition ${
-            selected ? "border-cyan-200 bg-cyan-300 text-slate-950" : "border-white/15 bg-slate-950/40 text-transparent group-hover:text-slate-200"
+            selected ? "accent-active border-transparent" : "border-white/15 bg-slate-950/40 text-transparent group-hover:text-slate-200"
           }`}
           onClick={() => onSelect(item)}
           type="button"
@@ -151,6 +144,8 @@ export default function FileCard({
           </div>
         </div>
       </div>
-    </motion.article>
+    </article>
   );
 }
+
+export default memo(FileCard);

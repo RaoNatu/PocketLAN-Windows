@@ -7,6 +7,7 @@ import { getRelativeFromAbsolute } from "./safePath.js";
 const imageExtensions = new Set(["jpg", "jpeg", "png", "gif", "webp", "svg"]);
 const videoExtensions = new Set(["mp4", "webm", "mkv", "mov", "m4v"]);
 const audioExtensions = new Set(["mp3", "wav", "ogg", "m4a", "flac", "aac"]);
+const subtitleExtensions = new Set(["vtt", "srt"]);
 const textExtensions = new Set(["txt", "md", "log", "rtf"]);
 const codeExtensions = new Set([
   "json",
@@ -57,6 +58,7 @@ export function detectCategory(extension = "", isDirectory = false) {
   if (imageExtensions.has(ext)) return "image";
   if (videoExtensions.has(ext)) return "video";
   if (audioExtensions.has(ext)) return "audio";
+  if (subtitleExtensions.has(ext)) return "subtitle";
   if (ext === "pdf") return "pdf";
   if (textExtensions.has(ext)) return "text";
   if (codeExtensions.has(ext)) return "code";
@@ -69,7 +71,7 @@ export function detectCategory(extension = "", isDirectory = false) {
 }
 
 export function canPreviewCategory(category) {
-  return ["image", "video", "audio", "pdf", "text", "code"].includes(category);
+  return ["image", "video", "audio", "pdf", "text", "code", "subtitle"].includes(category);
 }
 
 export async function buildFileMeta(absolutePath) {
@@ -110,4 +112,3 @@ export function getNameFromPath(relativePath = "") {
   if (!relativePath) return path.basename(SHARED_ROOT);
   return path.basename(relativePath.replace(/\//g, path.sep));
 }
-

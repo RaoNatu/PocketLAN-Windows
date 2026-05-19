@@ -8,6 +8,12 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   --app-bg: #090d18;
+  --accent: #22d3ee;
+  --accent-rgb: 34, 211, 238;
+  --accent-contrast: #07111f;
+  --subtitle-color: #ffffff;
+  --subtitle-bg: rgba(0, 0, 0, 0.65);
+  --subtitle-font-size: 115%;
 }
 
 * {
@@ -24,7 +30,7 @@ body {
   margin: 0;
   min-width: 320px;
   background:
-    linear-gradient(145deg, rgba(45, 212, 191, 0.16), transparent 34%),
+    linear-gradient(145deg, rgba(var(--accent-rgb), 0.18), transparent 34%),
     linear-gradient(235deg, rgba(244, 114, 182, 0.12), transparent 32%),
     linear-gradient(180deg, #090d18 0%, #0e1425 46%, #101827 100%);
   color: #e5edf7;
@@ -56,7 +62,7 @@ button {
 }
 
 ::selection {
-  background: rgba(45, 212, 191, 0.35);
+  background: rgba(var(--accent-rgb), 0.35);
 }
 
 @keyframes aurora-pan {
@@ -73,7 +79,7 @@ button {
 
 @layer components {
   .glass {
-    @apply border border-white/10 bg-slate-950/50 shadow-soft backdrop-blur-2xl;
+    @apply border border-white/10 bg-slate-950/50 shadow-soft backdrop-blur-xl;
   }
 
   .glass-subtle {
@@ -81,15 +87,15 @@ button {
   }
 
   .icon-button {
-    @apply inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.06] text-slate-200 transition hover:border-cyan-300/40 hover:bg-cyan-300/10 hover:text-white active:scale-95;
+    @apply inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.06] text-slate-200 transition hover:text-white active:scale-95;
   }
 
   .primary-button {
-    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl bg-cyan-300 px-4 py-2 text-sm font-semibold text-slate-950 shadow-glow transition hover:bg-cyan-200 active:scale-[0.98];
+    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl px-4 py-2 text-sm font-semibold shadow-glow transition active:scale-[0.98];
   }
 
   .secondary-button {
-    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-2 text-sm font-semibold text-slate-100 transition hover:border-cyan-300/40 hover:bg-cyan-300/10 active:scale-[0.98];
+    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-2 text-sm font-semibold text-slate-100 transition active:scale-[0.98];
   }
 
   .danger-button {
@@ -97,7 +103,7 @@ button {
   }
 
   .field {
-    @apply min-h-11 rounded-2xl border border-white/10 bg-slate-950/45 px-4 text-sm text-slate-100 outline-none transition placeholder:text-slate-500 focus:border-cyan-300/55 focus:ring-4 focus:ring-cyan-300/10;
+    @apply min-h-11 rounded-2xl border border-white/10 bg-slate-950/45 px-4 text-sm text-slate-100 outline-none transition placeholder:text-slate-500 focus:ring-4;
   }
 
   .skeleton {
@@ -111,6 +117,67 @@ button {
     inset: 0;
     position: absolute;
     transform: translateX(-100%);
+  }
+}
+
+.primary-button,
+.accent-active {
+  background: var(--accent);
+  color: var(--accent-contrast);
+}
+
+.primary-button:hover {
+  filter: brightness(1.08);
+}
+
+.secondary-button:hover,
+.icon-button:hover {
+  border-color: rgba(var(--accent-rgb), 0.4);
+  background: rgba(var(--accent-rgb), 0.1);
+}
+
+.field:focus {
+  border-color: rgba(var(--accent-rgb), 0.55);
+  --tw-ring-color: rgba(var(--accent-rgb), 0.12);
+}
+
+.accent-selected {
+  border-color: rgba(var(--accent-rgb), 0.55);
+  background: rgba(var(--accent-rgb), 0.1);
+}
+
+.accent-text {
+  color: rgb(var(--accent-rgb));
+}
+
+.accent-border {
+  border-color: rgba(var(--accent-rgb), 0.35);
+}
+
+.file-card {
+  contain: content;
+  content-visibility: auto;
+  contain-intrinsic-size: 84px;
+}
+
+.media-element::cue {
+  background: var(--subtitle-bg);
+  color: var(--subtitle-color);
+  font-size: var(--subtitle-font-size);
+}
+
+input[type="range"].accent-range {
+  accent-color: var(--accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.001ms !important;
   }
 }
 

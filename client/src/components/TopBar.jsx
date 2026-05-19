@@ -5,15 +5,19 @@ import {
   ArrowRight,
   FolderPlus,
   Grid2X2,
+  History,
   LayoutGrid,
   List,
   Menu,
+  Palette,
+  RotateCcw,
   Rows3,
   Search,
   TableProperties,
   UploadCloud,
   X
 } from "lucide-react";
+import { DEFAULT_ACCENT_COLOR } from "../utils/theme";
 
 const layouts = [
   { id: "grid", label: "Grid", icon: LayoutGrid },
@@ -45,6 +49,10 @@ export default function TopBar({
   onForward,
   canBack,
   canForward,
+  accentColor,
+  onAccentColor,
+  lastPlayedVideo,
+  onLastPlayedVideo,
   selectedCount,
   onDownloadSelected,
   onDeleteSelected,
@@ -94,6 +102,12 @@ export default function TopBar({
             <UploadCloud className="h-4 w-4" />
             <span className="hidden sm:inline">Upload</span>
           </button>
+          {lastPlayedVideo ? (
+            <button className="secondary-button" onClick={onLastPlayedVideo} title={`Resume ${lastPlayedVideo.name}`} type="button">
+              <History className="h-4 w-4" />
+              <span className="hidden sm:inline">Last played</span>
+            </button>
+          ) : null}
         </div>
 
         <div className="flex flex-wrap items-center justify-between gap-2">
@@ -106,7 +120,7 @@ export default function TopBar({
                 return (
                   <button
                     className={`flex h-9 min-w-9 items-center justify-center rounded-xl px-2 text-xs font-semibold transition ${
-                      active ? "bg-cyan-300 text-slate-950" : "text-slate-400 hover:bg-white/10 hover:text-white"
+                      active ? "accent-active" : "text-slate-400 hover:bg-white/10 hover:text-white"
                     }`}
                     key={option.id}
                     onClick={() => onLayout(option.id)}
@@ -139,11 +153,34 @@ export default function TopBar({
               <ArrowDownWideNarrow className={`h-4 w-4 transition ${sortDirection === "asc" ? "rotate-180" : ""}`} />
               {sortDirection === "asc" ? "Asc" : "Desc"}
             </button>
+
+            <label
+              className="flex min-h-10 items-center gap-2 rounded-2xl border border-white/10 bg-slate-950/35 px-3 text-sm text-slate-300"
+              title="Website color"
+            >
+              <Palette className="h-4 w-4 text-slate-500" />
+              <span className="sr-only">Website color</span>
+              <input
+                aria-label="Website color"
+                className="h-7 w-8 cursor-pointer border-0 bg-transparent p-0"
+                onChange={(event) => onAccentColor(event.target.value)}
+                type="color"
+                value={accentColor}
+              />
+              <button
+                className="rounded-xl p-1.5 text-slate-500 transition hover:bg-white/10 hover:text-white"
+                onClick={() => onAccentColor(DEFAULT_ACCENT_COLOR)}
+                title="Reset color"
+                type="button"
+              >
+                <RotateCcw className="h-3.5 w-3.5" />
+              </button>
+            </label>
           </div>
 
           {selectedCount ? (
-            <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-cyan-300/20 bg-cyan-300/10 px-2 py-2">
-              <span className="px-2 text-sm font-semibold text-cyan-100">{selectedCount} selected</span>
+            <div className="accent-selected flex flex-wrap items-center gap-2 rounded-2xl border px-2 py-2">
+              <span className="px-2 text-sm font-semibold text-white">{selectedCount} selected</span>
               <button className="secondary-button min-h-9 px-3" onClick={onDownloadSelected} type="button">
                 Download
               </button>
@@ -160,4 +197,3 @@ export default function TopBar({
     </header>
   );
 }
-

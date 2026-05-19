@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import Breadcrumbs from "../components/Breadcrumbs";
 import ConfirmDialog from "../components/ConfirmDialog";
@@ -10,21 +10,27 @@ import TextInputModal from "../components/TextInputModal";
 import ToastStack from "../components/ToastStack";
 import TopBar from "../components/TopBar";
 import UploadDropzone from "../components/UploadDropzone";
+import { useDebouncedValue } from "../hooks/useDebouncedValue";
 import { useFiles } from "../hooks/useFiles";
 import { useToasts } from "../hooks/useToasts";
 import { useUpload } from "../hooks/useUpload";
 import { bulkDownload, createFolder, deleteEntry, fileUrl, renameEntry } from "../utils/api";
 import { saveBlob } from "../utils/format";
+import { getLastPlayedVideo, LAST_PLAYED_VIDEO_EVENT } from "../utils/mediaMemory";
+import { applyAccentColor, getStoredAccentColor, storeAccentColor } from "../utils/theme";
 
 export default function DrivePage({ onLock }) {
   const [currentPath, setCurrentPath] = useState("");
   const [backStack, setBackStack] = useState([]);
   const [forwardStack, setForwardStack] = useState([]);
-  const [layout, setLayout] = useState("grid");
+  const [layout, setLayout] = useState(() => window.localStorage.getItem("pocketlan-layout") || "list");
+  const [accentColor, setAccentColor] = useState(getStoredAccentColor);
+  const [lastPlayedVideo, setLastPlayedVideo] = useState(getLastPlayedVideo);
   const [sortKey, setSortKey] = useState("name");
   const [sortDirection, setSortDirection] = useState("asc");
   const [typeFilter, setTypeFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
+  const debouncedSearchTerm = useDebouncedValue(searchTerm, 260);
   const [selectedItems, setSelectedItems] = useState(new Map());
   const [activeItem, setActiveItem] = useState(null);
   const [previewItem, setPreviewItem] = useState(null);
@@ -37,7 +43,7 @@ export default function DrivePage({ onLock }) {
   const { toasts, pushToast, removeToast } = useToasts();
   const { folder, storage, storageLoading, searchResults, items, loading, error, refresh, refreshStorage } = useFiles({
     currentPath,
-    searchTerm,
+    searchTerm: debouncedSearchTerm,
     typeFilter,
     sortKey,
     sortDirection
@@ -52,8 +58,33 @@ export default function DrivePage({ onLock }) {
 
   const selectedPathSet = useMemo(() => new Set(selectedItems.keys()), [selectedItems]);
   const selectedList = useMemo(() => Array.from(selectedItems.values()), [selectedItems]);
+  const mediaItems = useMemo(() => items.filter((item) => item.type === "file" && ["audio", "video"].includes(item.category)), [items]);
   const activeVisibleItem = activeItem ? items.find((item) => item.path === activeItem.path) || activeItem : null;
   const detailItem = activeVisibleItem || selectedList[0] || null;
+
+  useEffect(() => {
+    window.localStorage.setItem("pocketlan-layout", layout);
+  }, [layout]);
+
+  useEffect(() => {
+    applyAccentColor(accentColor);
+    storeAccentColor(accentColor);
+  }, [accentColor]);
+
+  useEffect(() => {
+    const syncLastPlayedVideo = () => setLastPlayedVideo(getLastPlayedVideo());
+    const syncFromStorage = (event) => {
+      if (event.key === "pocketlan-last-played-video") syncLastPlayedVideo();
+    };
+
+    window.addEventListener(LAST_PLAYED_VIDEO_EVENT, syncLastPlayedVideo);
+    window.addEventListener("storage", syncFromStorage);
+
+    return () => {
+      window.removeEventListener(LAST_PLAYED_VIDEO_EVENT, syncLastPlayedVideo);
+      window.removeEventListener("storage", syncFromStorage);
+    };
+  }, []);
 
   function clearSelection() {
     setSelectedItems(new Map());
@@ -114,6 +145,12 @@ export default function DrivePage({ onLock }) {
     setPreviewItem(item);
   }
 
+  function openLastPlayedVideo() {
+    if (lastPlayedVideo?.item) {
+      setPreviewItem(lastPlayedVideo.item);
+    }
+  }
+
   function toggleSelect(item) {
     setActiveItem(item);
     setSelectedItems((current) => {
@@ -131,6 +168,12 @@ export default function DrivePage({ onLock }) {
     document.body.append(anchor);
     anchor.click();
     anchor.remove();
+  }
+
+  function downloadFilesIndividually(fileItems) {
+    fileItems.forEach((item, index) => {
+      window.setTimeout(() => downloadViaAnchor(item), index * 180);
+    });
   }
 
   async function downloadItem(item) {
@@ -152,18 +195,29 @@ export default function DrivePage({ onLock }) {
 
   async function downloadSelected() {
     try {
-      if (selectedList.length === 1 && selectedList[0].type === "file") {
-        downloadViaAnchor(selectedList[0]);
+      const fileItems = selectedList.filter((item) => item.type === "file");
+      const folderItems = selectedList.filter((item) => item.type === "folder");
+
+      if (fileItems.length) {
+        downloadFilesIndividually(fileItems);
+      }
+
+      if (!folderItems.length) {
+        pushToast({
+          tone: "success",
+          title: "Downloads started",
+          message: `${fileItems.length} file${fileItems.length === 1 ? "" : "s"} downloading individually.`
+        });
         return;
       }
 
-      const blob = await bulkDownload(selectedList.map((item) => item.path));
-      saveBlob(blob, "pocketlan-selection.zip");
+      const blob = await bulkDownload(folderItems.map((item) => item.path));
+      saveBlob(blob, folderItems.length === 1 ? `${folderItems[0].name}.zip` : "pocketlan-folders.zip");
     } catch (requestError) {
       pushToast({
         tone: "error",
-        title: "Bulk download failed",
-        message: requestError.response?.data?.error || "The selection could not be zipped."
+        title: "Download failed",
+        message: requestError.response?.data?.error || "The selection could not be downloaded."
       });
     }
   }
@@ -383,6 +437,8 @@ export default function DrivePage({ onLock }) {
           <TopBar
             canBack={backStack.length > 0}
             canForward={forwardStack.length > 0}
+            accentColor={accentColor}
+            lastPlayedVideo={lastPlayedVideo}
             layout={layout}
             onBack={goBack}
             onClearSelection={clearSelection}
@@ -391,7 +447,9 @@ export default function DrivePage({ onLock }) {
             onDownloadSelected={downloadSelected}
             onForward={goForward}
             onLayout={setLayout}
+            onLastPlayedVideo={openLastPlayedVideo}
             onMobileMenu={() => setMobileSidebarOpen(true)}
+            onAccentColor={setAccentColor}
             onSearchTerm={setSearchTerm}
             onSortDirection={setSortDirection}
             onSortKey={setSortKey}
@@ -405,7 +463,7 @@ export default function DrivePage({ onLock }) {
           <motion.section animate={{ opacity: 1, y: 0 }} className="space-y-4" initial={{ opacity: 0, y: 12 }}>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="text-sm font-semibold uppercase tracking-[0.18em] text-cyan-200">Private drive</p>
+                <p className="accent-text text-sm font-semibold uppercase tracking-[0.18em]">Private drive</p>
                 <h2 className="mt-1 text-2xl font-bold tracking-tight text-white sm:text-3xl">
                   {searchResults ? "Search results" : folder?.name || "Home"}
                 </h2>
@@ -442,7 +500,7 @@ export default function DrivePage({ onLock }) {
         />
       </div>
 
-      <PreviewModal item={previewItem} onClose={() => setPreviewItem(null)} onDownload={downloadItem} />
+      <PreviewModal item={previewItem} mediaItems={mediaItems} onClose={() => setPreviewItem(null)} onDownload={downloadItem} />
       <ConfirmDialog
         dialog={confirmDialog}
         onCancel={() => setConfirmDialog(null)}

@@ -12,6 +12,7 @@ const __dirname = path.dirname(__filename);
 export const SERVER_DIR = path.resolve(__dirname, "..");
 export const PROJECT_ROOT = path.resolve(SERVER_DIR, "..");
 export const PORT = Number(process.env.PORT || 4242);
+export const HOST = process.env.HOST || "0.0.0.0";
 export const FRONTEND_PORT = Number(process.env.FRONTEND_PORT || 5173);
 export const APP_PIN = process.env.APP_PIN || "";
 

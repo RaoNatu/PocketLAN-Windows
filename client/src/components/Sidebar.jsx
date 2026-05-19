@@ -38,7 +38,7 @@ export default function Sidebar({
     <aside className="flex h-full min-h-0 flex-col p-4">
       <div className="mb-6 flex items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-3xl bg-cyan-300 text-slate-950 shadow-glow">
+          <div className="accent-active flex h-12 w-12 shrink-0 items-center justify-center rounded-3xl shadow-glow">
             <Images className="h-6 w-6" />
           </div>
           <div className="min-w-0">
@@ -112,7 +112,7 @@ export default function Sidebar({
             <button
               className={`flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left text-sm transition ${
                 active
-                  ? "bg-cyan-300 text-slate-950 shadow-glow"
+                  ? "accent-active shadow-glow"
                   : "text-slate-300 hover:bg-white/[0.065] hover:text-white"
               }`}
               key={filter.id}

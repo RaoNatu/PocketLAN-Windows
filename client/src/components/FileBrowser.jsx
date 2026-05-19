@@ -1,4 +1,3 @@
-import { AnimatePresence } from "framer-motion";
 import EmptyState from "./EmptyState";
 import FileCard from "./FileCard";
 import SkeletonGrid from "./SkeletonGrid";
@@ -46,10 +45,11 @@ export default function FileBrowser({
         : layout === "list" || layout === "detail"
           ? "space-y-3"
           : "grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4";
+  const scrollClass = items.length > 10 ? "max-h-[min(72vh,820px)] overflow-y-auto pr-1 custom-scrollbar" : "";
 
   return (
-    <div className={gridClass}>
-      <AnimatePresence initial={false}>
+    <div className={scrollClass}>
+      <div className={gridClass}>
         {items.map((item) => (
           <FileCard
             item={item}
@@ -64,8 +64,7 @@ export default function FileBrowser({
             selected={selectedPaths.has(item.path)}
           />
         ))}
-      </AnimatePresence>
+      </div>
     </div>
   );
 }
-

@@ -49,7 +49,14 @@ D:\File Explorer\
 
 ## Install
 
-Open two terminals.
+From the project root:
+
+```powershell
+cd "D:\File Explorer"
+npm run install:all
+```
+
+Or install each app separately.
 
 Backend:
 
@@ -67,7 +74,16 @@ npm install
 
 ## Run In Development
 
-Terminal 1, backend:
+From the project root:
+
+```powershell
+cd "D:\File Explorer"
+npm run dev
+```
+
+This starts both the backend and frontend. The frontend is exposed on the local network with Vite's `--host 0.0.0.0` flag.
+
+If you still want separate terminals, backend:
 
 ```powershell
 cd "D:\File Explorer\server"
@@ -112,7 +128,7 @@ D:\File Explorer\SharedFiles
 To use another folder in PowerShell:
 
 ```powershell
-cd "D:\File Explorer\server"
+cd "D:\File Explorer"
 $env:SHARED_ROOT="D:\My Shared Files"
 $env:APP_PIN="1234"
 npm run dev
@@ -125,7 +141,7 @@ Only files inside `SHARED_ROOT` are exposed. Paths outside it are rejected.
 Change the backend `SHARED_ROOT` environment variable before starting the server. Example:
 
 ```powershell
-cd "D:\File Explorer\server"
+cd "D:\File Explorer"
 $env:SHARED_ROOT="D:\Movies"
 npm run dev
 ```
@@ -133,7 +149,7 @@ npm run dev
 With a PIN/password:
 
 ```powershell
-cd "D:\File Explorer\server"
+cd "D:\File Explorer"
 $env:SHARED_ROOT="D:\Movies"
 $env:APP_PIN="1234"
 npm run dev
@@ -146,6 +162,42 @@ $env:SHARED_ROOT="E:\Photos\Family"
 ```
 
 Set `SHARED_ROOT` in the same terminal where you run `npm run dev`; PowerShell environment variables set this way last only for that terminal session.
+
+## Custom Host And Ports From Root
+
+Set environment variables before `npm run dev` from `D:\File Explorer`.
+
+Local-only backend:
+
+```powershell
+cd "D:\File Explorer"
+$env:HOST="127.0.0.1"
+$env:PORT="4242"
+$env:FRONTEND_PORT="5173"
+npm run dev
+```
+
+LAN-accessible backend:
+
+```powershell
+cd "D:\File Explorer"
+$env:HOST="0.0.0.0"
+$env:PORT="5050"
+$env:FRONTEND_PORT="5173"
+npm run dev
+```
+
+When using the root `npm run dev` command, the frontend automatically receives the backend `PORT`. If you run the frontend separately, point it at the custom API port:
+
+```powershell
+$env:VITE_API_PORT="5050"
+```
+
+Or override the whole API URL:
+
+```powershell
+$env:VITE_API_URL="http://localhost:5050/api"
+```
 
 ## Find Your Laptop IP Address On Windows
 
@@ -201,7 +253,9 @@ http://LAPTOP_LOCAL_IP:4242
 | Variable | Default | Purpose |
 | --- | --- | --- |
 | `PORT` | `4242` | Backend port |
+| `HOST` | `0.0.0.0` | Backend bind address; use `127.0.0.1` for local-only or `0.0.0.0` for LAN access |
 | `FRONTEND_PORT` | `5173` | Displayed in backend startup help |
+| `FRONTEND_HOST` | `0.0.0.0` | Frontend Vite bind address when using root `npm run dev` |
 | `SHARED_ROOT` | `../SharedFiles` | Folder exposed by the file explorer |
 | `APP_PIN` | empty | Optional PIN/password lock |
 | `MAX_UPLOAD_SIZE_MB` | `4096` | Per-file upload size limit |

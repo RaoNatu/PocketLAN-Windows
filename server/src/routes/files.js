@@ -17,6 +17,7 @@ import {
 import { buildFileMeta, getNameFromPath, getParentPath } from "../utils/fileMeta.js";
 
 const router = Router();
+const RESERVED_ENTRY_NAMES = new Set([".pocketlan-trash", ".natu-trash"]);
 
 const asyncHandler = (handler) => (req, res, next) => {
   Promise.resolve(handler(req, res, next)).catch(next);
@@ -38,6 +39,24 @@ function createPreviewUrl(relativePath) {
   return `/api/preview?path=${encodeURIComponent(relativePath)}`;
 }
 
+function isSubtitleExtension(filename) {
+  return [".vtt", ".srt"].includes(path.extname(filename).toLowerCase());
+}
+
+function isReservedEntryName(name) {
+  return RESERVED_ENTRY_NAMES.has(name);
+}
+
+function subtitleMatchScore(videoName, subtitleName) {
+  const videoBase = path.basename(videoName, path.extname(videoName)).toLowerCase();
+  const subtitleBase = path.basename(subtitleName, path.extname(subtitleName)).toLowerCase();
+
+  if (subtitleBase === videoBase) return 0;
+  if (subtitleBase.startsWith(`${videoBase}.`) || subtitleBase.startsWith(`${videoBase}-`) || subtitleBase.startsWith(`${videoBase}_`)) return 1;
+  if (subtitleBase.includes(videoBase) || videoBase.includes(subtitleBase)) return 2;
+  return 3;
+}
+
 async function assertFile(absolutePath) {
   const stats = await fsp.stat(absolutePath);
   if (!stats.isFile()) {
@@ -50,7 +69,7 @@ async function getDirectoryItems(absolutePath) {
   const entries = await fsp.readdir(absolutePath, { withFileTypes: true });
   const items = await Promise.all(
     entries
-      .filter((entry) => entry.name !== ".pocketlan-trash")
+      .filter((entry) => !isReservedEntryName(entry.name))
       .map((entry) => buildFileMeta(path.join(absolutePath, entry.name)))
   );
 
@@ -73,7 +92,7 @@ async function getStorageSummary() {
     const entries = await fsp.readdir(folder, { withFileTypes: true });
 
     for (const entry of entries) {
-      if (entry.name === ".pocketlan-trash" || entry.isSymbolicLink()) continue;
+      if (isReservedEntryName(entry.name) || entry.isSymbolicLink()) continue;
 
       const absolutePath = path.join(folder, entry.name);
 
@@ -132,7 +151,7 @@ async function addToArchive(archive, absolutePath, zipBaseName) {
     const entries = await fsp.readdir(absolutePath, { withFileTypes: true });
 
     for (const entry of entries) {
-      if (entry.name === ".pocketlan-trash") continue;
+      if (isReservedEntryName(entry.name)) continue;
       await addToArchive(archive, path.join(absolutePath, entry.name), `${zipBaseName}/${entry.name}`);
     }
 
@@ -245,6 +264,35 @@ router.get(
   })
 );
 
+router.get(
+  "/subtitles",
+  asyncHandler(async (req, res) => {
+    const { absolutePath } = await resolveSafePath(req.query.path, { mustExist: true, allowRoot: false });
+    await assertFile(absolutePath);
+
+    const parentFolder = path.dirname(absolutePath);
+    const entries = await fsp.readdir(parentFolder, { withFileTypes: true });
+    const tracks = [];
+
+    for (const entry of entries) {
+      if (!entry.isFile() || !isSubtitleExtension(entry.name)) continue;
+
+      const subtitlePath = path.join(parentFolder, entry.name);
+      const meta = await buildFileMeta(subtitlePath);
+      if (!meta) continue;
+
+      tracks.push({
+        ...meta,
+        score: subtitleMatchScore(path.basename(absolutePath), entry.name),
+        previewUrl: createPreviewUrl(meta.path)
+      });
+    }
+
+    tracks.sort((left, right) => left.score - right.score || left.name.localeCompare(right.name));
+    res.json({ tracks });
+  })
+);
+
 router.post(
   "/folder",
   asyncHandler(async (req, res) => {
@@ -350,7 +398,7 @@ router.get(
 
       for (const entry of entries) {
         if (results.length >= limit) break;
-        if (entry.name === ".pocketlan-trash" || entry.isSymbolicLink()) continue;
+        if (isReservedEntryName(entry.name) || entry.isSymbolicLink()) continue;
 
         const absolutePath = path.join(folder, entry.name);
 

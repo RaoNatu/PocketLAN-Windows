@@ -9,6 +9,7 @@ import {
   APP_PIN,
   FRONTEND_PORT,
   getLanAddresses,
+  HOST,
   PORT,
   PROJECT_ROOT,
   SHARED_ROOT
@@ -102,7 +103,7 @@ app.use((error, _req, res, _next) => {
   res.status(status).json({ error: message });
 });
 
-app.listen(PORT, "0.0.0.0", () => {
+app.listen(PORT, HOST, () => {
   const lanAddresses = getLanAddresses();
   const firstLan = lanAddresses[0] || "YOUR_LAPTOP_LOCAL_IP";
 
@@ -110,6 +111,7 @@ app.listen(PORT, "0.0.0.0", () => {
   console.log("PocketLAN backend is running");
   console.log("-----------------------------------");
   console.log(`Shared root: ${SHARED_ROOT}`);
+  console.log(`Listening on: ${HOST}:${PORT}`);
   console.log(`Local laptop API: http://localhost:${PORT}`);
   console.log(`LAN API example: http://${firstLan}:${PORT}`);
   console.log("");
