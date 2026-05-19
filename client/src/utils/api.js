@@ -3,9 +3,9 @@ import axios from "axios";
 const explicitApiUrl = import.meta.env.VITE_API_URL;
 const inferredApiPort = import.meta.env.VITE_API_PORT || "4242";
 const sameOriginApi = window.location.port === inferredApiPort;
-const inferredApiUrl = sameOriginApi
-  ? "/api"
-  : `${window.location.protocol}//${window.location.hostname}:${inferredApiPort}/api`;
+const inferredApiUrl = import.meta.env.DEV && !sameOriginApi
+  ? `${window.location.protocol}//${window.location.hostname}:${inferredApiPort}/api`
+  : "/api";
 
 export const API_ROOT = (explicitApiUrl || inferredApiUrl).replace(/\/$/, "");
 const PIN_STORAGE_KEY = "pocketlan-pin";

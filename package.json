@@ -7,8 +7,12 @@
     "dev": "node scripts/dev.js",
     "dev:client": "npm --prefix client run dev -- --host 0.0.0.0",
     "dev:server": "npm --prefix server run dev",
+    "dev:gui": "npm --prefix pocketlan-gui run dev",
     "build": "npm --prefix client run build",
+    "build:gui": "npm --prefix pocketlan-gui run build",
+    "build:exe": "npm --prefix pocketlan-gui run build:exe",
     "start": "npm --prefix server start",
-    "install:all": "npm install --prefix server && npm install --prefix client"
+    "install:gui": "npm install --prefix pocketlan-gui",
+    "install:all": "npm install --prefix server && npm install --prefix client && npm install --prefix pocketlan-gui"
   }
 }

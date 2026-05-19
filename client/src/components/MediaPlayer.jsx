@@ -3,16 +3,20 @@ import {
   Captions,
   CaptionsOff,
   Check,
+  ChevronDown,
+  ChevronUp,
   Download,
   FolderOpen,
   GripVertical,
   ListMusic,
   Maximize2,
   Minimize2,
+  Minus,
   MoreVertical,
   Pause,
   PictureInPicture2,
   Play,
+  Plus,
   Repeat,
   Repeat1,
   RotateCcw,
@@ -42,6 +46,15 @@ const SUBTITLE_STYLE_KEY = "pocketlan-player-subtitle-style";
 const MEDIA_EXTENSIONS = /\.(mp4|webm|ogg|ogv|mov|m4v|mkv|mp3|wav|m4a|flac|aac)$/i;
 const SUBTITLE_EXTENSIONS = /\.(vtt|srt)$/i;
 const PLAYBACK_SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
+const DEFAULT_SUBTITLE_STYLE = {
+  fontSize: 115,
+  color: "#ffffff",
+  background: "#000000",
+  backgroundOpacity: 80,
+  position: 82,
+  shadow: true
+};
+const SUBTITLE_TIMING_PATTERN = /(\d{1,2}:)?\d{2}:\d{2}[\.,]\d{3}/g;
 
 function readJson(key, fallback) {
   try {
@@ -73,6 +86,25 @@ function readBool(key, fallback) {
   const value = window.localStorage.getItem(key);
   if (value === null) return fallback;
   return value === "true";
+}
+
+function clampNumber(value, fallback, min, max) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return fallback;
+  return Math.min(max, Math.max(min, number));
+}
+
+function normalizeHexColor(value, fallback) {
+  return /^#[0-9a-f]{6}$/i.test(value || "") ? value : fallback;
+}
+
+function alphaHex(percent) {
+  const value = Math.round((clampNumber(percent, DEFAULT_SUBTITLE_STYLE.backgroundOpacity, 0, 100) / 100) * 255);
+  return value.toString(16).padStart(2, "0");
+}
+
+function subtitleBackgroundValue(color, opacity) {
+  return `${normalizeHexColor(color, DEFAULT_SUBTITLE_STYLE.background)}${alphaHex(opacity)}`;
 }
 
 function isMediaItem(item) {
@@ -257,22 +289,36 @@ function formatTimestamp(seconds) {
   return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(secs).padStart(2, "0")}.${String(millis).padStart(3, "0")}`;
 }
 
-function shiftVtt(text, delay) {
+function transformVtt(text, delay, position) {
   const offset = Number(delay) || 0;
-  return text.replace(/(\d{1,2}:)?\d{2}:\d{2}[\.,]\d{3}/g, (match) => formatTimestamp(parseTimestamp(match) + offset));
+  const linePosition = Math.round(clampNumber(position, DEFAULT_SUBTITLE_STYLE.position, 45, 96));
+
+  return text
+    .split("\n")
+    .map((line) => {
+      if (!line.includes("-->")) return line;
+
+      const shiftedLine = line.replace(SUBTITLE_TIMING_PATTERN, (match) => formatTimestamp(parseTimestamp(match) + offset));
+      const withoutOldLine = shiftedLine.replace(/\sline:[^\s]+/g, "");
+      return `${withoutOldLine.trimEnd()} line:${linePosition}%`;
+    })
+    .join("\n");
 }
 
-function createSubtitleUrl(rawVtt, delay) {
-  const blob = new Blob([shiftVtt(rawVtt, delay)], { type: "text/vtt" });
+function createSubtitleUrl(rawVtt, delay, position) {
+  const blob = new Blob([transformVtt(rawVtt, delay, position)], { type: "text/vtt" });
   return URL.createObjectURL(blob);
 }
 
 function readSubtitleStyle() {
+  const stored = readJson(SUBTITLE_STYLE_KEY, {});
   return {
-    fontSize: 115,
-    color: "#ffffff",
-    background: "#000000",
-    ...readJson(SUBTITLE_STYLE_KEY, {})
+    fontSize: clampNumber(stored.fontSize, DEFAULT_SUBTITLE_STYLE.fontSize, 75, 180),
+    color: normalizeHexColor(stored.color, DEFAULT_SUBTITLE_STYLE.color),
+    background: normalizeHexColor(stored.background, DEFAULT_SUBTITLE_STYLE.background),
+    backgroundOpacity: clampNumber(stored.backgroundOpacity, DEFAULT_SUBTITLE_STYLE.backgroundOpacity, 0, 100),
+    position: clampNumber(stored.position, DEFAULT_SUBTITLE_STYLE.position, 45, 96),
+    shadow: stored.shadow !== false
   };
 }
 
@@ -280,6 +326,12 @@ function repeatLabel(mode) {
   if (mode === "one") return "Repeat one";
   if (mode === "queue") return "Repeat queue";
   return "Repeat off";
+}
+
+function subtitleShadowValue(enabled) {
+  return enabled
+    ? "0 1px 2px rgba(0,0,0,0.95), 0 0 7px rgba(0,0,0,0.9)"
+    : "none";
 }
 
 export default function MediaPlayer({ initialItem, mediaItems = [], onDownload }) {
@@ -322,6 +374,9 @@ export default function MediaPlayer({ initialItem, mediaItems = [], onDownload }
   const [subtitleFontSize, setSubtitleFontSize] = useState(subtitleStyle.fontSize);
   const [subtitleColor, setSubtitleColor] = useState(subtitleStyle.color);
   const [subtitleBackground, setSubtitleBackground] = useState(subtitleStyle.background);
+  const [subtitleBackgroundOpacity, setSubtitleBackgroundOpacity] = useState(subtitleStyle.backgroundOpacity);
+  const [subtitlePosition, setSubtitlePosition] = useState(subtitleStyle.position);
+  const [subtitleShadow, setSubtitleShadow] = useState(subtitleStyle.shadow);
   const [subtitleError, setSubtitleError] = useState("");
 
   const currentItem = queue[currentIndex] || null;
@@ -344,12 +399,30 @@ export default function MediaPlayer({ initialItem, mediaItems = [], onDownload }
       raw,
       source,
       path,
-      url: createSubtitleUrl(raw, subtitleDelay)
+      url: createSubtitleUrl(raw, subtitleDelay, subtitlePosition)
     };
   }
 
   function revealControls() {
     setControlsVisible(true);
+  }
+
+  function changeSubtitleDelay(nextDelay) {
+    setSubtitleDelay(Number(clampNumber(nextDelay, 0, -30, 30).toFixed(2)));
+  }
+
+  function changeSubtitlePosition(nextPosition) {
+    setSubtitlePosition(Number(clampNumber(nextPosition, DEFAULT_SUBTITLE_STYLE.position, 45, 96).toFixed(0)));
+  }
+
+  function resetSubtitleStyle() {
+    setSubtitleDelay(0);
+    setSubtitleFontSize(DEFAULT_SUBTITLE_STYLE.fontSize);
+    setSubtitleColor(DEFAULT_SUBTITLE_STYLE.color);
+    setSubtitleBackground(DEFAULT_SUBTITLE_STYLE.background);
+    setSubtitleBackgroundOpacity(DEFAULT_SUBTITLE_STYLE.backgroundOpacity);
+    setSubtitlePosition(DEFAULT_SUBTITLE_STYLE.position);
+    setSubtitleShadow(DEFAULT_SUBTITLE_STYLE.shadow);
   }
 
   useEffect(() => {
@@ -393,9 +466,12 @@ export default function MediaPlayer({ initialItem, mediaItems = [], onDownload }
     writeJson(SUBTITLE_STYLE_KEY, {
       fontSize: subtitleFontSize,
       color: subtitleColor,
-      background: subtitleBackground
+      background: subtitleBackground,
+      backgroundOpacity: subtitleBackgroundOpacity,
+      position: subtitlePosition,
+      shadow: subtitleShadow
     });
-  }, [subtitleBackground, subtitleColor, subtitleFontSize]);
+  }, [subtitleBackground, subtitleBackgroundOpacity, subtitleColor, subtitleFontSize, subtitlePosition, subtitleShadow]);
 
   useEffect(() => {
     const media = mediaRef.current;
@@ -421,10 +497,10 @@ export default function MediaPlayer({ initialItem, mediaItems = [], onDownload }
     setSubtitleTracks((tracks) =>
       tracks.map((track) => {
         revokeSubtitleTrack(track);
-        return { ...track, url: createSubtitleUrl(track.raw, subtitleDelay) };
+        return { ...track, url: createSubtitleUrl(track.raw, subtitleDelay, subtitlePosition) };
       })
     );
-  }, [subtitleDelay]);
+  }, [subtitleDelay, subtitlePosition]);
 
   useEffect(() => {
     let cancelled = false;
@@ -1048,9 +1124,10 @@ export default function MediaPlayer({ initialItem, mediaItems = [], onDownload }
                 ref={mediaRef}
                 src={currentItem.src}
                 style={{
-                  "--subtitle-bg": `${subtitleBackground}cc`,
+                  "--subtitle-bg": subtitleBackgroundValue(subtitleBackground, subtitleBackgroundOpacity),
                   "--subtitle-color": subtitleColor,
-                  "--subtitle-font-size": `${subtitleFontSize}%`
+                  "--subtitle-font-size": `${subtitleFontSize}%`,
+                  "--subtitle-shadow": subtitleShadowValue(subtitleShadow)
                 }}
                 {...mediaEvents}
               >
@@ -1216,14 +1293,19 @@ export default function MediaPlayer({ initialItem, mediaItems = [], onDownload }
                       <div className="rounded-2xl border border-white/10 bg-white/[0.045] p-3">
                         <div className="mb-3 flex items-center justify-between gap-3">
                           <span className="font-semibold text-white">Subtitles</span>
-                          <button
-                            className={`rounded-xl px-3 py-2 text-xs font-semibold transition ${subtitlesEnabled ? "accent-active" : "bg-white/10 text-slate-300"}`}
-                            disabled={!subtitleTracks.length}
-                            onClick={() => setSubtitlesEnabled((current) => !current)}
-                            type="button"
-                          >
-                            {subtitlesEnabled ? "On" : "Off"}
-                          </button>
+                          <div className="flex items-center gap-2">
+                            <button className="rounded-xl p-2 text-slate-300 transition hover:bg-white/10 hover:text-white" onClick={resetSubtitleStyle} title="Reset subtitle style" type="button">
+                              <RotateCcw className="h-4 w-4" />
+                            </button>
+                            <button
+                              className={`rounded-xl px-3 py-2 text-xs font-semibold transition ${subtitlesEnabled ? "accent-active" : "bg-white/10 text-slate-300"}`}
+                              disabled={!subtitleTracks.length}
+                              onClick={() => setSubtitlesEnabled((current) => !current)}
+                              type="button"
+                            >
+                              {subtitlesEnabled ? "On" : "Off"}
+                            </button>
+                          </div>
                         </div>
 
                         <select
@@ -1256,9 +1338,28 @@ export default function MediaPlayer({ initialItem, mediaItems = [], onDownload }
                         </div>
 
                         <label className="mt-3 block">
-                          <span className="mb-2 block text-xs font-semibold text-slate-500">Font size</span>
+                          <span className="mb-2 flex items-center justify-between gap-3 text-xs font-semibold text-slate-500">
+                            <span>Font size</span>
+                            <span>{subtitleFontSize}%</span>
+                          </span>
                           <input className="accent-range w-full" max="180" min="75" onChange={(event) => setSubtitleFontSize(Number(event.target.value))} type="range" value={subtitleFontSize} />
                         </label>
+
+                        <div className="mt-3 rounded-xl border border-white/10 bg-slate-950/50 p-3">
+                          <div className="mb-2 flex items-center justify-between gap-3 text-xs font-semibold text-slate-500">
+                            <span>Position</span>
+                            <span>{subtitlePosition}%</span>
+                          </div>
+                          <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2">
+                            <button className="icon-button h-9 w-9 rounded-xl" onClick={() => changeSubtitlePosition(subtitlePosition - 4)} title="Move subtitles up" type="button">
+                              <ChevronUp className="h-4 w-4" />
+                            </button>
+                            <input className="accent-range w-full" max="96" min="45" onChange={(event) => changeSubtitlePosition(event.target.value)} step="1" type="range" value={subtitlePosition} />
+                            <button className="icon-button h-9 w-9 rounded-xl" onClick={() => changeSubtitlePosition(subtitlePosition + 4)} title="Move subtitles down" type="button">
+                              <ChevronDown className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </div>
 
                         <div className="mt-3 grid grid-cols-2 gap-2">
                           <label className="flex items-center justify-between rounded-xl border border-white/10 bg-slate-950/50 px-3 py-2">
@@ -1271,13 +1372,47 @@ export default function MediaPlayer({ initialItem, mediaItems = [], onDownload }
                           </label>
                         </div>
 
-                        <label className="mt-3 flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-slate-950/50 px-3 py-2">
-                          <span className="text-xs font-semibold text-slate-500">Delay</span>
-                          <div className="flex items-center gap-2">
-                            <input className="w-20 bg-transparent text-right outline-none" max="30" min="-30" onChange={(event) => setSubtitleDelay(Number(event.target.value))} step="0.25" type="number" value={subtitleDelay} />
-                            <span className="text-xs text-slate-500">s</span>
-                          </div>
+                        <label className="mt-3 block">
+                          <span className="mb-2 flex items-center justify-between gap-3 text-xs font-semibold text-slate-500">
+                            <span>Box opacity</span>
+                            <span>{subtitleBackgroundOpacity}%</span>
+                          </span>
+                          <input className="accent-range w-full" max="100" min="0" onChange={(event) => setSubtitleBackgroundOpacity(Number(event.target.value))} step="5" type="range" value={subtitleBackgroundOpacity} />
                         </label>
+
+                        <button
+                          className={`mt-3 flex w-full items-center justify-between rounded-xl border px-3 py-2 text-left transition ${
+                            subtitleShadow ? "accent-selected text-slate-100" : "border-white/10 bg-slate-950/50 text-slate-400"
+                          }`}
+                          onClick={() => setSubtitleShadow((current) => !current)}
+                          type="button"
+                        >
+                          <span className="text-xs font-semibold">Text outline</span>
+                          <span className="text-xs">{subtitleShadow ? "On" : "Off"}</span>
+                        </button>
+
+                        <div className="mt-3 rounded-xl border border-white/10 bg-slate-950/50 p-3">
+                          <span className="mb-2 flex items-center justify-between gap-3 text-xs font-semibold text-slate-500">
+                            <span>Delay</span>
+                            <span>{subtitleDelay}s</span>
+                          </span>
+                          <div className="grid grid-cols-[auto_auto_minmax(0,1fr)_auto_auto] items-center gap-2">
+                            <button className="icon-button h-9 w-9 rounded-xl" onClick={() => changeSubtitleDelay(subtitleDelay - 0.25)} title="Subtitles earlier" type="button">
+                              <Minus className="h-4 w-4" />
+                            </button>
+                            <button className="icon-button h-9 w-9 rounded-xl" onClick={() => changeSubtitleDelay(0)} title="Reset subtitle delay" type="button">
+                              <RotateCcw className="h-4 w-4" />
+                            </button>
+                            <input className="accent-range min-w-0" max="30" min="-30" onChange={(event) => changeSubtitleDelay(event.target.value)} step="0.25" type="range" value={subtitleDelay} />
+                            <div className="flex items-center gap-1">
+                              <input className="w-16 bg-transparent text-right text-sm outline-none" max="30" min="-30" onChange={(event) => changeSubtitleDelay(event.target.value)} step="0.25" type="number" value={subtitleDelay} />
+                              <span className="text-xs text-slate-500">s</span>
+                            </div>
+                            <button className="icon-button h-9 w-9 rounded-xl" onClick={() => changeSubtitleDelay(subtitleDelay + 0.25)} title="Subtitles later" type="button">
+                              <Plus className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </div>
                       </div>
 
                       <div className="grid grid-cols-2 gap-2">

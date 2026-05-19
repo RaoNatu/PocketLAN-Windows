@@ -14,6 +14,7 @@
   --subtitle-color: #ffffff;
   --subtitle-bg: rgba(0, 0, 0, 0.65);
   --subtitle-font-size: 115%;
+  --subtitle-shadow: 0 1px 2px rgba(0, 0, 0, 0.95), 0 0 7px rgba(0, 0, 0, 0.9);
 }
 
 * {
@@ -164,6 +165,8 @@ button {
   background: var(--subtitle-bg);
   color: var(--subtitle-color);
   font-size: var(--subtitle-font-size);
+  line-height: 1.35;
+  text-shadow: var(--subtitle-shadow);
 }
 
 input[type="range"].accent-range {

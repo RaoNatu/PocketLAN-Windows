@@ -1,6 +1,21 @@
 # PocketLAN
 
-PocketLAN is a private local-network file explorer for your laptop. It lets phones, tablets, and other browsers on the same trusted Wi-Fi browse one configured shared folder, upload files to it, download files from it, preview common media/doc formats, and stream audio/video without using cloud services or an external database.
+PocketLAN is a private local-network file explorer for your laptop. It lets phones, tablets, and other browsers on the same trusted Wi-Fi browse one selected folder, upload files, download files, preview common media and document formats, and stream audio/video without a cloud service or external database.
+
+## Clean Project Layout
+
+```text
+PocketLAN/
+  client/          React web app
+  server/          Express file server and API
+  pocketlan-gui/   Windows Electron launcher
+  scripts/         Root development helpers
+  package.json     Root commands
+  README.md
+  .gitignore
+```
+
+Generated folders such as `node_modules`, `dist`, `release`, `SharedFiles`, `server/.uploads`, and `graphify-out` are intentionally ignored. They can be recreated by installing dependencies, building, or running the app.
 
 ## Features
 
@@ -14,256 +29,146 @@ PocketLAN is a private local-network file explorer for your laptop. It lets phon
 - Optional PIN/password gate using `APP_PIN`.
 - Safe path handling to prevent path traversal outside the shared root.
 - Delete moves items into `.pocketlan-trash` inside the shared root.
+- Optional Windows GUI for choosing a folder, starting/stopping the server, copying LAN links, and viewing logs.
 
 ## Security Warning
 
-This app is intended only for trusted private Wi-Fi networks. Do not expose it to the public internet, do not port-forward it from your router, and do not run it on untrusted networks. The backend intentionally listens on `0.0.0.0` so your local devices can reach it, which also means anyone on the same network may be able to try connecting. Set `APP_PIN` when you use it around other people.
-
-## Project Structure
-
-```text
-D:\File Explorer\
-  server/
-    package.json
-    src/
-      index.js
-      config.js
-      routes/
-        files.js
-        upload.js
-      utils/
-        safePath.js
-        fileMeta.js
-  client/
-    package.json
-    src/
-      App.jsx
-      main.jsx
-      components/
-      pages/
-      hooks/
-      utils/
-      styles/
-  README.md
-```
+PocketLAN is intended only for trusted private Wi-Fi networks. Do not expose it to the public internet, do not port-forward it from your router, and do not run it on untrusted networks. The backend listens on `0.0.0.0` by default so local devices can reach it, which also means other people on the same network may be able to connect. Set `APP_PIN` when you use it around other people.
 
 ## Install
 
 From the project root:
 
 ```powershell
-cd "D:\File Explorer"
+cd "D:\File Explorer\PocketLAN"
 npm run install:all
 ```
 
-Or install each app separately.
-
-Backend:
+Install one part at a time if needed:
 
 ```powershell
-cd "D:\File Explorer\server"
-npm install
-```
-
-Frontend:
-
-```powershell
-cd "D:\File Explorer\client"
-npm install
+npm install --prefix server
+npm install --prefix client
+npm install --prefix pocketlan-gui
 ```
 
 ## Run In Development
 
-From the project root:
+Start the backend and web client together:
 
 ```powershell
-cd "D:\File Explorer"
+cd "D:\File Explorer\PocketLAN"
 npm run dev
 ```
 
-This starts both the backend and frontend. The frontend is exposed on the local network with Vite's `--host 0.0.0.0` flag.
-
-If you still want separate terminals, backend:
-
-```powershell
-cd "D:\File Explorer\server"
-npm run dev
-```
-
-The backend listens on `0.0.0.0:4242` and prints local/LAN URL examples.
-
-Terminal 2, frontend:
-
-```powershell
-cd "D:\File Explorer\client"
-npm run dev -- --host 0.0.0.0
-```
-
-Open on the laptop:
+Open the web app on the laptop:
 
 ```text
 http://localhost:5173
 ```
 
-Open on a phone/tablet on the same Wi-Fi:
+Open it from another device on the same Wi-Fi:
 
 ```text
 http://LAPTOP_LOCAL_IP:5173
 ```
 
-The React app automatically calls the backend at:
-
-```text
-http://LAPTOP_LOCAL_IP:4242/api
-```
-
-## Set The Shared Folder
-
-If `SHARED_ROOT` is not set, the app creates and uses:
-
-```text
-D:\File Explorer\SharedFiles
-```
-
-To use another folder in PowerShell:
+Run the Windows GUI:
 
 ```powershell
-cd "D:\File Explorer"
-$env:SHARED_ROOT="D:\My Shared Files"
+cd "D:\File Explorer\PocketLAN"
+npm run dev:gui
+```
+
+Run individual parts:
+
+```powershell
+npm run dev:server
+npm run dev:client
+```
+
+## Shared Folder
+
+If `SHARED_ROOT` is not set, PocketLAN creates and uses:
+
+```text
+D:\File Explorer\PocketLAN\SharedFiles
+```
+
+Use another folder for the web/server workflow:
+
+```powershell
+cd "D:\File Explorer\PocketLAN"
+$env:SHARED_ROOT="D:\Movies"
 $env:APP_PIN="1234"
 npm run dev
 ```
 
 Only files inside `SHARED_ROOT` are exposed. Paths outside it are rejected.
 
-### Share A Specific Folder
+## Ports And API URL
 
-Change the backend `SHARED_ROOT` environment variable before starting the server. Example:
+Useful environment variables:
 
-```powershell
-cd "D:\File Explorer"
-$env:SHARED_ROOT="D:\Movies"
-npm run dev
-```
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `PORT` | `4242` | Backend port |
+| `HOST` | `0.0.0.0` | Backend bind address |
+| `FRONTEND_PORT` | `5173` | Frontend Vite port used by the root dev script |
+| `FRONTEND_HOST` | `0.0.0.0` | Frontend Vite bind address |
+| `SHARED_ROOT` | `./SharedFiles` | Folder exposed by the file explorer |
+| `APP_PIN` | empty | Optional PIN/password lock |
+| `MAX_UPLOAD_SIZE_MB` | `4096` | Per-file upload size limit |
+| `VITE_API_URL` | inferred | Optional frontend API override |
+| `VITE_API_PORT` | `4242` | API port used by the frontend in development |
 
-With a PIN/password:
-
-```powershell
-cd "D:\File Explorer"
-$env:SHARED_ROOT="D:\Movies"
-$env:APP_PIN="1234"
-npm run dev
-```
-
-For another drive or folder, replace `D:\Movies` with the folder you want to share:
+Example:
 
 ```powershell
-$env:SHARED_ROOT="E:\Photos\Family"
-```
-
-Set `SHARED_ROOT` in the same terminal where you run `npm run dev`; PowerShell environment variables set this way last only for that terminal session.
-
-## Custom Host And Ports From Root
-
-Set environment variables before `npm run dev` from `D:\File Explorer`.
-
-Local-only backend:
-
-```powershell
-cd "D:\File Explorer"
-$env:HOST="127.0.0.1"
-$env:PORT="4242"
-$env:FRONTEND_PORT="5173"
-npm run dev
-```
-
-LAN-accessible backend:
-
-```powershell
-cd "D:\File Explorer"
-$env:HOST="0.0.0.0"
+cd "D:\File Explorer\PocketLAN"
 $env:PORT="5050"
 $env:FRONTEND_PORT="5173"
 npm run dev
 ```
 
-When using the root `npm run dev` command, the frontend automatically receives the backend `PORT`. If you run the frontend separately, point it at the custom API port:
+## Build
+
+Build the web client:
 
 ```powershell
-$env:VITE_API_PORT="5050"
+cd "D:\File Explorer\PocketLAN"
+npm run build
 ```
 
-Or override the whole API URL:
+Build the Windows installer:
 
 ```powershell
-$env:VITE_API_URL="http://localhost:5050/api"
+cd "D:\File Explorer\PocketLAN"
+npm run build:exe
 ```
 
-## Find Your Laptop IP Address On Windows
-
-In PowerShell or Command Prompt:
-
-```powershell
-ipconfig
-```
-
-Look for your Wi-Fi adapter and copy the `IPv4 Address`, for example:
+The installer is written to:
 
 ```text
-192.168.1.23
+D:\File Explorer\PocketLAN\pocketlan-gui\release\PocketLAN Setup 1.0.0.exe
 ```
 
-Then use:
+## Firewall
 
-```text
-http://192.168.1.23:5173
-```
-
-## Allow Local Ports Through Windows Firewall
-
-If your phone/tablet cannot connect, Windows Defender Firewall may be blocking Node/Vite. You can allow the two local TCP ports from an Administrator PowerShell:
+If your phone or tablet cannot connect, Windows Defender Firewall may be blocking Node/Vite. From an Administrator PowerShell, allow the local ports you use:
 
 ```powershell
 netsh advfirewall firewall add rule name="PocketLAN Backend 4242" dir=in action=allow protocol=TCP localport=4242
 netsh advfirewall firewall add rule name="PocketLAN Frontend 5173" dir=in action=allow protocol=TCP localport=5173
 ```
 
-Use these only on trusted private networks. Remove the rules later if you no longer need local device access.
+Use these only on trusted private networks.
 
-## Optional Production-Style Run
-
-You can build the frontend and let Express serve it from the backend:
+## Repository
 
 ```powershell
-cd "D:\File Explorer\client"
-npm run build
-
-cd "D:\File Explorer\server"
-npm start
+git clone https://github.com/RaoNatu/PocketLAN.git
+cd PocketLAN
+npm run install:all
+npm run dev
 ```
-
-Then open:
-
-```text
-http://LAPTOP_LOCAL_IP:4242
-```
-
-## Useful Environment Variables
-
-| Variable | Default | Purpose |
-| --- | --- | --- |
-| `PORT` | `4242` | Backend port |
-| `HOST` | `0.0.0.0` | Backend bind address; use `127.0.0.1` for local-only or `0.0.0.0` for LAN access |
-| `FRONTEND_PORT` | `5173` | Displayed in backend startup help |
-| `FRONTEND_HOST` | `0.0.0.0` | Frontend Vite bind address when using root `npm run dev` |
-| `SHARED_ROOT` | `../SharedFiles` | Folder exposed by the file explorer |
-| `APP_PIN` | empty | Optional PIN/password lock |
-| `MAX_UPLOAD_SIZE_MB` | `4096` | Per-file upload size limit |
-| `VITE_API_URL` | inferred | Optional frontend API override |
-
-## Notes
-
-- Symbolic links are not exposed, which avoids accidentally escaping the shared root.
-- Deletes move files/folders to `.pocketlan-trash` inside the shared root.
-- Unknown files remain downloadable even when preview is not available.
-- Browser support for formats like `mkv`, `docx`, or `xlsx` depends on the browser; they are still downloadable.
